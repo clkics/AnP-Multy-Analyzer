@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>START ANP</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0b0d14; --bg1:#10121c; --bg2:#161924; --bg3:#1d2030;
+  --border:#252840; --text1:#e4e8f5; --text2:#8892b0; --text3:#454d6a;
+  --accent:#f76707; --blue:#4dabf7; --green:#69db7c; --red:#ff6b6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text1);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh}
+.header{position:sticky;top:0;z-index:200;background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:0 24px;height:50px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.logo{font-size:16px;font-weight:800;letter-spacing:-.5px}
+.logo .s{color:var(--accent)} .logo .a{color:var(--blue)}
+.logo .v{font-size:10px;color:var(--text3);font-weight:400;margin-left:5px}
+.header-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.file-count{font-size:11px;color:var(--text3)}
+.settings{background:var(--bg1);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sg{display:flex;align-items:center;gap:5px}
+.sg label{font-size:11px;color:var(--text3);white-space:nowrap}
+.sg input,.sg select{background:var(--bg3);border:1px solid var(--border);color:var(--text1);padding:4px 7px;border-radius:5px;font-size:12px;width:70px}
+.sg select{width:auto}
+.s-info{font-size:11px;color:var(--text3);padding-left:12px;border-left:1px solid var(--border)}
+.s-info b{color:var(--text2)}
+.btn{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-o:hover{border-color:var(--text2);color:#fff}
+.btn-r{background:transparent;border:1px solid rgba(255,107,107,.3);color:var(--red)}
+.btn-r:hover{border-color:var(--red);background:rgba(255,107,107,.08)}
+.upload-wrap{padding:28px 24px}
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:52px;text-align:center;cursor:pointer;background:var(--bg1);transition:all .2s}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:rgba(247,103,7,.04)}
+.drop-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.drop-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:5px}
+.drop-sub{font-size:12px;color:var(--text3)}
+#fileIn{display:none}
+.content{padding:0 24px 28px;display:none}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+/* ISO 230-2 패널 레이아웃 */
+.chart-body{display:flex;gap:14px;align-items:flex-start}
+.iso-panel{flex-shrink:0;width:220px;display:flex;flex-direction:column;gap:8px}
+.iso-main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:2px}
+.iso-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.iso-card.full{grid-column:1/-1}
+.iso-card.half{grid-column:span 1}
+.iso-label{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--text3);text-transform:uppercase;margin-bottom:4px}
+.iso-val{font-size:22px;font-weight:800;line-height:1;margin-bottom:2px}
+.iso-sub{font-size:9px;color:var(--text3);line-height:1.4}
+.iso-dir{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.iso-dir-card{background:var(--bg3);border-radius:8px;padding:9px 11px}
+.iso-dir-card.down{border-left:2px solid var(--red)}
+.iso-dir-card.up{border-left:2px solid var(--blue)}
+.iso-dir-title{font-size:9px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase}
+.iso-dir-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.iso-dir-key{font-size:9px;color:var(--text3)}
+.iso-dir-num{font-size:13px;font-weight:700}
+.chart-wrap{flex:1;min-width:0;position:relative;height:300px}
+.err-bar{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.err-item{background:rgba(255,68,68,0.12);border:1px solid rgba(255,68,68,0.35);
+  color:#ff6b6b;border-radius:3px;padding:1px 7px;font-size:11px;}
+.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:12px}
+.card-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.card-meta{font-size:11px;color:var(--text3);line-height:1.6}
+.card-acts{display:flex;gap:7px;flex-shrink:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.li{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none}
+.ld{width:9px;height:9px;border-radius:50%}
+.li.off{opacity:.3}
+/* ── 상세 팝업 ─────────────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg1);border:1px solid var(--border);border-radius:14px;width:min(960px,96vw);max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:14px;font-weight:700;color:#fff}
+.modal-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.modal-body{overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.modal-close{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:2px 6px}
+.modal-close:hover{color:#fff}
+/* 편차 차트 */
+.dev-chart-wrap{height:200px;position:relative;background:var(--bg2);border-radius:8px;padding:8px}
+/* 측정값 테이블 */
+.meas-table{width:100%;border-collapse:collapse;font-size:11px}
+.meas-table th{background:var(--bg3);color:var(--text3);padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+.meas-table td{padding:5px 8px;text-align:center;border-bottom:1px solid rgba(37,40,64,.5);color:var(--text2)}
+.meas-table tr.down-row td{color:var(--red)}
+.meas-table tr.up-row td{color:var(--blue)}
+.meas-table tfoot td{background:var(--bg3);color:#fff;font-weight:700;border-top:1px solid var(--border)}
+/* ISO 결과 테이블 */
+.iso-table{width:100%;border-collapse:collapse;font-size:11px}
+.iso-table th{background:var(--bg3);color:var(--text3);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+.iso-table td{padding:5px 8px;border-bottom:1px solid rgba(37,40,64,.5);color:var(--text2);text-align:right}
+.iso-table td:first-child{text-align:left;color:var(--text1);font-weight:600}
+.iso-table .hi{color:#ff6b6b;font-weight:700}
+.iso-table tfoot td{background:var(--bg3);font-weight:700;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo"><span class="s">START</span> <span class="a">ANP</span><span class="v">v1.3.01_20260518</span></div>
+  <div class="header-right">
+    <span class="file-count" id="fileCount"></span>
+    <button class="btn btn-o" onclick="exportXLSX()" id="btnExport" style="display:none">⬇ xlsx 내보내기</button>
+    <button class="btn btn-o" onclick="resetAll()">↺ 초기화</button>
+  </div>
+</div>
+
+<div class="settings">
+  <div class="sg"><label>측정 축</label>
+    <select id="axisSelect" onchange="onAxisChange()">
+      <option value="Y">Y축 (720 step)</option>
+      <option value="X">X축 (460 step)</option>
+    </select>
+  </div>
+  <div class="sg"><label>샘플링(μsec)</label><input type="number" id="samplingUs" value="1000" min="1"></div>
+  <div class="sg"><label>헤더 행 수</label><input type="number" id="headerRows"  value="4"    min="0"></div>
+  <div class="sg"><label>정지창(ms)</label>   <input type="number" id="stopWindowMs" value="30"  min="1"></div>
+  <div class="sg"><label>정지변화(μm)</label> <input type="number" id="stopThreshUm" value="100" min="1"></div>
+  <div class="sg"><label>최소샘플</label>     <input type="number" id="minSamp"   value="20"   min="5"></div>
+  <div class="sg"><label>1step(μm)</label>   <input type="number" id="stepUm"    value="0.9817" step="0.0001"></div>
+  <div class="sg"><label>웜업 사이클</label>  <input type="number" id="warmupCycles" value="4" min="0"></div>
+  <div class="sg"><label>측정 사이클</label>  <input type="number" id="measCycles"   value="5" min="1"></div>
+  <div class="s-info" id="stepInfo"></div>
+</div>
+
+<div class="upload-wrap" id="uploadWrap">
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">CSV 파일을 드래그하거나 클릭해서 선택</div>
+    <div class="drop-sub">최대 9개 파일 동시 선택 가능 · 파일명에서 X/Y축 자동 감지</div>
+  </div>
+  <input type="file" id="fileIn" accept=".csv,.txt" multiple>
+</div>
+
+<div class="content" id="content">
+  <div id="fileCards"></div>
+</div>
+
+<script>
+// ── 상수 ────────────────────────────────────────────────────
+const AXIS = { Y:{stepCount:720,label:'Y축'}, X:{stepCount:460,label:'X축'} };
+const CC = [
+  ['#74c0fc','#1c7ed6'],  // 1회차: 파랑
+  ['#69db7c','#2f9e44'],  // 2회차: 초록
+  ['#ffd43b','#e67700'],  // 3회차: 노랑
+  ['#f783ac','#c2255c'],  // 4회차: 핑크
+  ['#a9e34b','#5c940d'],  // 5회차: 연두
+  ['#63e6be','#099268'],  // 6회차: 민트
+  ['#ffa94d','#d9480f'],  // 7회차: 주황
+  ['#da77f2','#862e9c'],  // 8회차: 보라
+  ['#ff6b6b','#c92a2a'],  // 9회차: 빨강
+  ['#f0c05a','#a06800'],  // 10회차: 황금
+];
+const fileResults = [];   // [{filename, axis, pos}]
+const chartInst   = {};   // idx → Chart
+
+// ── 설정 ────────────────────────────────────────────────────
+function S() {
+  const axis = document.getElementById('axisSelect').value;
+  const stepUm = parseFloat(document.getElementById('stepUm').value) || 0.9817;
+  return {
+    axis, stepCount:AXIS[axis].stepCount, stepUm,
+    samplingUs:    parseFloat(document.getElementById('samplingUs').value)    || 1000,
+    headerRows:    parseInt  (document.getElementById('headerRows').value)    || 4,
+    stopWindowMs:  parseFloat(document.getElementById('stopWindowMs').value)  || 30,
+    stopThreshUm:  parseFloat(document.getElementById('stopThreshUm').value)  || 100,
+    minSamp:       parseInt  (document.getElementById('minSamp').value)       || 20,
+    warmupCycles:  parseInt  (document.getElementById('warmupCycles').value)  ?? 4,
+    measCycles:    parseInt  (document.getElementById('measCycles').value)    || 5,
+    get stepMm() { return this.stepCount * this.stepUm / 1000; },
+  };
+}
+
+function onAxisChange() {
+  updateInfo();
+  if (fileResults.filter(Boolean).length) rerunAll();
+}
+function updateInfo() {
+  const s=S();
+  document.getElementById('stepInfo').innerHTML=`이송거리 <b>${(s.stepMm*1000).toFixed(1)} μm</b>`;
+}
+
+// ── 드래그드롭 & 파일 입력 ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updateInfo();
+  const zone = document.getElementById('dropZone');
+  zone.addEventListener('dragover',  e=>{ e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', ()=> zone.classList.remove('drag'));
+  zone.addEventListener('drop', e=>{
+    e.preventDefault(); zone.classList.remove('drag');
+    handleFiles([...e.dataTransfer.files]);
+  });
+  document.getElementById('fileIn').addEventListener('change', function(){
+    handleFiles([...this.files]); this.value='';
+  });
+});
+
+// ── 파일명 파싱 (전역) ──────────────────────────────────────
+function parseName(name) {
+  const m = name.match(/^(\d+)_([xy])_([^-]+)-c(\d+)-(\d+)/i);
+  if (!m) return null;
+  const hochaNum = parseInt((m[3].match(/\d+/)||['0'])[0]);
+  return {
+    hogi:  parseInt(m[1]),
+    axis:  m[2].toUpperCase(),
+    hocha: hochaNum,
+    hochaStr: m[3].toUpperCase(),   // "0K", "5K" 등 원본 문자열
+    case:  parseInt(m[4]),
+    num:   parseInt(m[5]),
+  };
+}
+
+function handleFiles(files) {
+  const csvs  = files.filter(f=>/\.(csv|txt)$/i.test(f.name));
+  const slots = 108 - fileResults.filter(Boolean).length;
+  if (!csvs.length) return;
+  if (slots <= 0) { alert('최대 108개 파일까지 가능합니다.'); return; }
+
+  // 1단계: 파일명 기준으로 먼저 정렬
+  const sorted = [...csvs].sort((a, b) => {
+    const pa = parseName(a.name), pb = parseName(b.name);
+    if (!pa && !pb) return a.name.localeCompare(b.name);
+    if (!pa) return  1;
+    if (!pb) return -1;
+    for (const k of ['hogi','axis','hocha','case','num']) {
+      if (pa[k] < pb[k]) return -1;
+      if (pa[k] > pb[k]) return  1;
+    }
+    return 0;
+  }).slice(0, slots);
+
+  // 중복 제거
+  const existing = new Set(fileResults.filter(Boolean).map(r=>r.filename));
+  const toLoad = sorted.filter(f=>!existing.has(f.name));
+  if (!toLoad.length) return;
+
+  // 2단계: 모든 파일을 병렬로 읽되 Promise.all로 완료 대기
+  const readFile = f => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = e => resolve({file:f, text:e.target.result});
+    reader.onerror = () => reject(f.name);
+    reader.readAsText(f);
+  });
+
+  Promise.all(toLoad.map(readFile)).then(results => {
+    // 3단계: 읽기 완료 후 정렬 순서(results 배열 순서 = sorted 순서) 그대로 렌더링
+    results.forEach(({file, text}) => {
+      const pos = parseCSV(text);
+      if (!pos) { alert(`${file.name}: 데이터 부족`); return; }
+      const nm = file.name.toLowerCase();
+      let axis = document.getElementById('axisSelect').value;
+      if (/_x_|[\-_]x[\-_]/.test(nm))      axis='X';
+      else if (/_y_|[\-_]y[\-_]/.test(nm)) axis='Y';
+      const idx = fileResults.length;
+      fileResults.push({filename:file.name, axis, pos});
+      if (idx===0) {
+        document.getElementById('uploadWrap').style.display='none';
+        document.getElementById('content').style.display='block';
+      }
+      renderCard(idx);
+    });
+    updCount();
+  }).catch(name => alert(`파일 읽기 실패: ${name}`));
+}
+
+// ── 상세 팝업 ────────────────────────────────────────────────
+let devChartInst = null;
+function showModal(idx) {
+  const r = fileResults[idx]; if(!r) return;
+  const iso = r._iso; if(!iso) return;
+  const rt  = r._realTargets;
+  const f   = (v,d=1) => v.toFixed(d);
+  const pm  = v => `±${f(v/2)}`;
+  const sgn = v => (v>=0?'+':'')+f(v);
+
+  // ── 측정값 테이블 ───────────────────────────────────────────
+  const measDown = r._cycles.filter(g=>g.isMeas&&g.dir==='down');
+  const measUp   = r._cycles.filter(g=>g.isMeas&&g.dir==='up');
+  const tNums = [1,2,3,4,5,6,7,8,9];
+  const nc = Math.max(measDown.length, measUp.length);
+
+  // 헤더: T1~T9 기준값 행
+  const thCells = tNums.map(t=>`<th>T${t}<br><span style="font-size:9px;color:var(--text3)">${rt[t].toFixed(3)}</span></th>`).join('');
+
+  // 각 회차 행 (Up/Down 교대)
+  let measRows = '';
+  for(let j=0; j<nc; j++){
+    const upG   = measUp[j];
+    const downG = measDown[j];
+    if(upG){
+      const cells = tNums.map(t=>{
+        const s = upG.stops.find(s=>s.tNum===t);
+        const v = s ? (s.rep - rt[t])*1000 : null;
+        return `<td>${v!==null ? sgn(v) : '-'}</td>`;
+      }).join('');
+      measRows += `<tr class="up-row"><td>↑ Up</td><td>${j+1}회</td>${cells}</tr>`;
+    }
+    if(downG){
+      const cells = tNums.map(t=>{
+        const s = downG.stops.find(s=>s.tNum===t);
+        const v = s ? (s.rep - rt[t])*1000 : null;
+        return `<td>${v!==null ? sgn(v) : '-'}</td>`;
+      }).join('');
+      measRows += `<tr class="down-row"><td>↓ Down</td><td>${j+1}회</td>${cells}</tr>`;
+    }
+  }
+
+  // ── ISO 계산 결과 테이블 ─────────────────────────────────────
+  const maxRi  = Math.max(...iso.perPos.map(p=>p.Ri));
+  const maxBi  = Math.max(...iso.perPos.map(p=>Math.abs(p.Bi)));
+  const isoRows = iso.perPos.map(p=>{
+    const hiR = p.Ri===maxRi, hiB = Math.abs(p.Bi)===maxBi;
+    return `<tr>
+      <td>T${p.t}<br><span style="font-size:9px;color:var(--text3)">${rt[p.t].toFixed(3)}</span></td>
+      <td>${sgn(p.xu_bar)}</td><td>${sgn(p.xd_bar)}</td>
+      <td>${f(p.su,3)}</td><td>${f(p.sd,3)}</td>
+      <td>${f(p.Riu,3)}</td><td>${f(p.Rid,3)}</td>
+      <td class="${hiR?'hi':''}">${f(p.Ri,3)}</td>
+      <td class="${hiB?'hi':''}">${sgn(p.Bi)}</td>
+    </tr>`;
+  }).join('');
+
+  // 팝업 HTML
+  const html = `
+  <div class="modal-bg" id="isoModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div>
+          <div class="modal-title">ISO 230-2 상세 데이터 — ${r.filename}</div>
+          <div class="modal-sub">측정 ${iso.n}회 · 절점 T1~T9 · 단위 μm</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- 편차 차트 -->
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:6px">위치 편차 그래프 (ISO 230-2)</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">각 회차별 오차(μm). 실선: Go Down ↓ | 점선: Go Up ↑</div>
+          <div id="devChartLeg" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding:6px 8px;background:var(--bg3);border-radius:6px"></div>
+          <div class="dev-chart-wrap" style="height:280px"><canvas id="devChart"></canvas></div>
+        </div>
+
+        <!-- 측정값 테이블 -->
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:6px">타겟별 상세 측정값</div>
+          <div style="overflow-x:auto">
+            <table class="meas-table">
+              <thead><tr><th>방향</th><th>회차</th>${thCells}</tr></thead>
+              <tbody>${measRows}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ISO 계산 결과 테이블 -->
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:6px">타겟별 ISO 230-2 계산 결과</div>
+          <div style="overflow-x:auto">
+            <table class="iso-table">
+              <thead><tr>
+                <th>위치</th>
+                <th>x̄ᵢ↑ (μm)</th><th>x̄ᵢ↓ (μm)</th>
+                <th>sᵢ↑</th><th>sᵢ↓</th>
+                <th>Rᵢ↑</th><th>Rᵢ↓</th>
+                <th>Rᵢ</th><th>Bᵢ</th>
+              </tr></thead>
+              <tbody>${isoRows}</tbody>
+              <tfoot><tr>
+                <td>전체</td>
+                <td colspan="4" style="color:var(--text3);font-size:10px">
+                  A↑=${pm(iso.Au)} A↓=${pm(iso.Ad)} A=${pm(iso.A)}
+                </td>
+                <td style="color:var(--blue)">${pm(iso.Ru)}</td>
+                <td style="color:var(--red)">${pm(iso.Rd)}</td>
+                <td style="color:#69db7c">${pm(iso.R)}</td>
+                <td style="color:#f783ac">${f(iso.Bbar)}</td>
+              </tr></tfoot>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // 편차 차트 렌더링
+  requestAnimationFrame(()=>{
+    const canvas = document.getElementById('devChart');
+    if(!canvas) return;
+    if(devChartInst){devChartInst.destroy();devChartInst=null;}
+    const labels = tNums.map(t=>`T${t}`);
+
+    // CC 배열과 동일한 색상 사용 (Down=어두운색, Up=밝은색)
+    const downDs = measDown.map((g,j)=>({
+      label:`Down ${j+1}회`,
+      data: tNums.map(t=>{ const s=g.stops.find(s=>s.tNum===t); return s?(s.rep-rt[t])*1000:null; }),
+      borderColor: CC[j%CC.length][1],
+      backgroundColor:'transparent', pointRadius:3, tension:0.2, borderWidth:1.5,
+    }));
+    const upDs = measUp.map((g,j)=>({
+      label:`Up ${j+1}회`,
+      data: tNums.map(t=>{ const s=g.stops.find(s=>s.tNum===t); return s?(s.rep-rt[t])*1000:null; }),
+      borderColor: CC[j%CC.length][0],
+      backgroundColor:'transparent', pointRadius:3, tension:0.2, borderWidth:1.5, borderDash:[4,3],
+    }));
+
+    // 평균선
+    const avgDLine = { label:'평균 ↓',
+      data:tNums.map(t=>iso.perPos.find(p=>p.t===t)?.xd_bar),
+      borderColor:'rgba(255,107,107,1)', backgroundColor:'transparent',
+      pointRadius:4, borderWidth:2.5, tension:0.2 };
+    const avgULine = { label:'평균 ↑',
+      data:tNums.map(t=>iso.perPos.find(p=>p.t===t)?.xu_bar),
+      borderColor:'rgba(77,171,247,1)', backgroundColor:'transparent',
+      pointRadius:4, borderWidth:2.5, tension:0.2 };
+
+    const allDs = [...downDs, ...upDs, avgDLine, avgULine];
+
+    // Y축 범위: 전체 데이터 기준 ±여백으로 편차 잘 보이게
+    const allVals = allDs.flatMap(ds=>ds.data.filter(v=>v!=null));
+    const yMin = Math.min(...allVals), yMax = Math.max(...allVals);
+    const yPad = Math.max((yMax-yMin)*0.2, 5);  // 최소 ±5μm 여백
+
+    devChartInst = new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{labels, datasets: allDs},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        plugins:{
+          legend:{ display:false },  // 커스텀 체크박스 범례 사용
+          tooltip:{mode:'index', intersect:false,
+            callbacks:{label:item=>`${item.dataset.label}: ${item.parsed.y!=null?(item.parsed.y>=0?'+':'')+item.parsed.y.toFixed(1):'-'}μm`}
+          },
+        },
+        scales:{
+          x:{ticks:{color:'#8892b0',font:{size:10}}, grid:{color:'rgba(37,40,64,.8)'}},
+          y:{
+            min: yMin - yPad,
+            max: yMax + yPad,
+            ticks:{color:'#8892b0',font:{size:10},callback:v=>(v>=0?'+':'')+v.toFixed(0)},
+            grid:{color:'rgba(37,40,64,.8)'},
+            title:{display:true,text:'Position differences (μm)',color:'#454d6a',font:{size:9}},
+          },
+        },
+      },
+    });
+
+    // ── 체크박스 범례 렌더링 ────────────────────────────────────
+    const legBox = document.getElementById('devChartLeg');
+    if(legBox){
+      legBox.innerHTML = allDs.map((ds,i)=>{
+        const col = ds.borderColor;
+        const isDash = !!ds.borderDash;
+        // 점선 미리보기 SVG
+        const linePreview = isDash
+          ? `<svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="${col}" stroke-width="2" stroke-dasharray="4,3"/></svg>`
+          : `<svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="${col}" stroke-width="2"/></svg>`;
+        return `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:#8892b0;white-space:nowrap">
+          <input type="checkbox" checked onchange="toggleDevDs(${i})" style="width:11px;height:11px;cursor:pointer;accent-color:${col}">
+          ${linePreview}
+          <span>${ds.label}</span>
+        </label>`;
+      }).join('');
+    }
+  });
+}
+function toggleDevDs(dsIdx){
+  if(!devChartInst) return;
+  const ds = devChartInst.data.datasets[dsIdx];
+  if(!ds) return;
+  ds.hidden = !ds.hidden;
+  devChartInst.update();
+}
+function closeModal(){
+  const m=document.getElementById('isoModal'); if(m) m.remove();
+  if(devChartInst){devChartInst.destroy();devChartInst=null;}
+}
+
+function parseCSV(text) {
+  const s=S(), lines=text.split(/\r?\n/), pos=[];
+  for (let i=s.headerRows; i<lines.length; i++) {
+    const v=parseFloat(lines[i].split(',')[0]);
+    if (!isNaN(v)) pos.push(v);
+  }
+  return pos.length>=100 ? pos : null;
+}
+
+function updCount() {
+  const n=fileResults.filter(Boolean).length;
+  document.getElementById('fileCount').textContent = n?`${n}개 파일`:'';
+  const btn=document.getElementById('btnExport');
+  if(btn) btn.style.display = n ? '' : 'none';
+}
+
+// ── ISO 230-2:2014 계산 ─────────────────────────────────────
+function calcISO230(cycles, realTargets) {
+  // 측정 사이클만 사용 (T1~T9, tNum 1~9)
+  const measDown = cycles.filter(g=>g.isMeas && g.dir==='down');
+  const measUp   = cycles.filter(g=>g.isMeas && g.dir==='up');
+  if(!measDown.length || !measUp.length) return null;
+
+  const n = Math.min(measDown.length, measUp.length); // 측정 회차 수
+  // 절점 tNum 1~9 (T0/T10 제외, 연산 절점)
+  const tNums = [1,2,3,4,5,6,7,8,9];
+
+  // 각 절점별 편차 수집
+  // xᵢⱼ = stop.rep - realTargets[tNum]  (μm 단위로 변환)
+  const devDown = {}, devUp = {};
+  tNums.forEach(t=>{
+    devDown[t] = []; devUp[t] = [];
+  });
+
+  measDown.forEach(g=>{
+    g.stops.forEach(s=>{
+      if(s.tNum>=1 && s.tNum<=9)
+        devDown[s.tNum].push((s.rep - realTargets[s.tNum]) * 1000); // mm→μm
+    });
+  });
+  measUp.forEach(g=>{
+    g.stops.forEach(s=>{
+      if(s.tNum>=1 && s.tNum<=9)
+        devUp[s.tNum].push((s.rep - realTargets[s.tNum]) * 1000);
+    });
+  });
+
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  const std = arr => {
+    if(arr.length<2) return 0;
+    const m=avg(arr);
+    return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1));
+  };
+
+  // 절점별 계산
+  const perPos = tNums.map(t=>{
+    const xd = devDown[t], xu = devUp[t];
+    const xd_bar = avg(xd), xu_bar = avg(xu);
+    const sd = std(xd), su = std(xu);
+    const Bi  = xu_bar - xd_bar;           // 3.15 반전값
+    const Rid = 4 * sd;                    // 3.19 R↓ᵢ
+    const Riu = 4 * su;                    // 3.19 R↑ᵢ
+    const Ri  = Math.max(2*su+2*sd+Math.abs(Bi), Riu, Rid);  // 3.20 Rᵢ
+    return {t, xd_bar, xu_bar, sd, su, Bi, Rid, Riu, Ri};
+  });
+
+  // ── 3.23 한쪽 방향 계통오차
+  const Eu = Math.max(...perPos.map(p=>p.xu_bar)) - Math.min(...perPos.map(p=>p.xu_bar));
+  const Ed = Math.max(...perPos.map(p=>p.xd_bar)) - Math.min(...perPos.map(p=>p.xd_bar));
+
+  // ── 3.24 양쪽 방향 계통오차
+  const allBars = perPos.flatMap(p=>[p.xu_bar, p.xd_bar]);
+  const E = Math.max(...allBars) - Math.min(...allBars);
+
+  // ── 3.25 평균 양쪽 방향 위치결정 오차
+  const xbar_i = perPos.map(p=>(p.xu_bar+p.xd_bar)/2);
+  const M = Math.max(...xbar_i) - Math.min(...xbar_i);
+
+  // ── 3.15/3.16/3.17 백래시
+  const Bi_arr = perPos.map(p=>p.Bi);
+  const B     = Math.max(...Bi_arr.map(Math.abs));   // 3.16 최대 백래시
+  const Bbar  = avg(Bi_arr);                          // 3.17 평균 반전값
+
+  // ── 3.21 축 반복정도
+  const Ru = Math.max(...perPos.map(p=>p.Riu));  // R↑
+  const Rd = Math.max(...perPos.map(p=>p.Rid));  // R↓
+  const R  = Math.max(...perPos.map(p=>p.Ri));   // R 양방향
+
+  // ── 3.26 한쪽 방향 정확정밀도
+  const Au = Math.max(...perPos.map(p=>p.xu_bar+2*p.su)) - Math.min(...perPos.map(p=>p.xu_bar-2*p.su));
+  const Ad = Math.max(...perPos.map(p=>p.xd_bar+2*p.sd)) - Math.min(...perPos.map(p=>p.xd_bar-2*p.sd));
+
+  // ── 3.27 양쪽 방향 정확정밀도
+  const A_max = Math.max(...perPos.flatMap(p=>[p.xu_bar+2*p.su, p.xd_bar+2*p.sd]));
+  const A_min = Math.min(...perPos.flatMap(p=>[p.xu_bar-2*p.su, p.xd_bar-2*p.sd]));
+  const A = A_max - A_min;
+
+  return {A, Au, Ad, R, Ru, Rd, B, Bbar, E, Eu, Ed, M, perPos, n};
+}
+
+// ── ISO 230-2 결과 패널 HTML 생성 ───────────────────────────
+function isoHTML(iso, idx) {
+  if(!iso) return '<div class="iso-panel" style="opacity:.4;font-size:11px;color:var(--text3)">데이터 부족</div>';
+  const f  = (v,d=1) => v.toFixed(d);
+  const pm = v => `±${f(v/2)}`;   // 전체값 → ±절반 표기
+
+  return `<div class="iso-panel" style="cursor:pointer" onclick="showModal(${idx})" title="클릭하면 상세 데이터 보기">
+    <div class="iso-main">
+      <div class="iso-card full" style="border-color:rgba(255,215,0,.25)">
+        <div class="iso-label">ACCURACY (정확정밀도)</div>
+        <div class="iso-val" style="color:#ffd43b">${pm(iso.A)} <span style="font-size:12px;font-weight:400">μm</span></div>
+        <div class="iso-sub">A=${f(iso.A)} · E=${f(iso.E)} · M=${f(iso.M)}</div>
+      </div>
+      <div class="iso-card full" style="border-color:rgba(105,219,124,.25)">
+        <div class="iso-label">REPEATABILITY (반복정도)</div>
+        <div class="iso-val" style="color:#69db7c">${pm(iso.R)} <span style="font-size:12px;font-weight:400">μm</span></div>
+        <div class="iso-sub">R=${f(iso.R)} · R↑=${f(iso.Ru)} · R↓=${f(iso.Rd)}</div>
+      </div>
+      <div class="iso-card full" style="border-color:rgba(247,131,172,.25)">
+        <div class="iso-label">Hysteresis (평균 반전값)</div>
+        <div class="iso-val" style="color:#f783ac">${f(iso.Bbar)} <span style="font-size:12px;font-weight:400">μm</span></div>
+        <div class="iso-sub">B̄=${f(iso.Bbar)} · 최대 B=${f(iso.B)}</div>
+      </div>
+    </div>
+    <div class="iso-dir">
+      <div class="iso-dir-card down">
+        <div class="iso-dir-title">↓ 역방향 (Go Down)</div>
+        <div class="iso-dir-row">
+          <span class="iso-dir-key">정확정밀도 A↓</span>
+          <span class="iso-dir-num" style="color:var(--red)">${pm(iso.Ad)}</span>
+        </div>
+        <div class="iso-dir-row">
+          <span class="iso-dir-key">반복정도 R↓</span>
+          <span class="iso-dir-num" style="color:var(--red)">${pm(iso.Rd)}</span>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">μm</div>
+      </div>
+      <div class="iso-dir-card up">
+        <div class="iso-dir-title">↑ 정방향 (Go Up)</div>
+        <div class="iso-dir-row">
+          <span class="iso-dir-key">정확정밀도 A↑</span>
+          <span class="iso-dir-num" style="color:var(--blue)">${pm(iso.Au)}</span>
+        </div>
+        <div class="iso-dir-row">
+          <span class="iso-dir-key">반복정도 R↑</span>
+          <span class="iso-dir-num" style="color:var(--blue)">${pm(iso.Ru)}</span>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">μm</div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);text-align:center;margin-top:4px;opacity:.6">📊 클릭하여 상세 보기</div>
+  </div>`;
+}
+
+
+function med(arr) {
+  const a=[...arr].sort((a,b)=>a-b), m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+function detectStops(pos, s) {
+  const ws=Math.max(2,Math.round(s.stopWindowMs/(s.samplingUs/1000)));
+  const th=s.stopThreshUm/1000, n=pos.length;
+  const isS=new Uint8Array(n);
+  for (let i=0;i<=n-ws;i++) {
+    let lo=pos[i],hi=pos[i];
+    for (let j=i+1;j<i+ws;j++){if(pos[j]<lo)lo=pos[j];if(pos[j]>hi)hi=pos[j];}
+    if (hi-lo<th) for(let j=i;j<i+ws;j++) isS[j]=1;
+  }
+  const stops=[]; let inS=false,ss=0;
+  for (let i=0;i<=n;i++) {
+    const st=i<n?isS[i]:0;
+    if (st&&!inS){inS=true;ss=i;}
+    else if (!st&&inS){
+      const len=i-ss;
+      if (len>=s.minSamp){
+        const rep=med(pos.slice(ss+Math.floor(len/2),i));
+        // rep 기준 방향 결정 → 두 stop 사이에 T0/T10 극값이 껴도 올바르게 분류
+        const dir=stops.length===0?'start':(rep>stops[stops.length-1].rep?'up':'down');
+        stops.push({rep,start:ss,end:i-1,len,dir});
+      }
+      inS=false;
+    }
+  }
+  return stops;
+}
+
+function detectT0T10(stops, stepMm) {
+  // ── 방향별 사이클 구성 ─────────────────────────────────────
+  const all = stops.filter(s=>s.dir!=='start');
+  const gs = [];
+  all.forEach(s=>{
+    if(!gs.length||gs[gs.length-1].dir!==s.dir)
+      gs.push({dir:s.dir, stops:[s]});
+    else gs[gs.length-1].stops.push(s);
+  });
+  const upCycles = gs.filter(g=>g.dir==='up');
+
+  // ── 기준 T0: Up 사이클 마지막 정착값(max rep)들의 평균 ─────
+  // X축(양수)/Y축(음수) 모두 동일:
+  //   Up = 작은값→큰값 이동, 마지막 정착 = max(rep) = T0
+  const upLastReps = upCycles.map(g=>Math.max(...g.stops.map(s=>s.rep)));
+  const allRv = all.map(s=>s.rep);
+  const t0Nom = upLastReps.length
+    ? upLastReps.reduce((a,b)=>a+b)/upLastReps.length
+    : Math.max(...allRv);
+
+  // ── 기준 T1~T10: T0에서 stepMm씩 감소 ──────────────────────
+  // X축: 6.37 → 5.91 → ... (양수 감소)
+  // Y축: -34.71 → -35.41 → ... (음수 감소 = 더 음수)
+  // 두 경우 모두 sign=-1
+  const realTargets = Array.from({length:11}, (_,i) => t0Nom - i*stepMm);
+  const t10Nom = realTargets[10];
+
+  // t0b/t10b: 사이클 분류용 경계
+  const t0b  = (realTargets[0] + realTargets[1]) / 2;
+  const t10b = (realTargets[9] + realTargets[10]) / 2;
+
+  return {t0Nom, t10Nom, t0b, t10b, realTargets};
+}
+
+function detectCycles(stops, t0b, t10b) {
+  // 전체 stops(start 제외)로 방향별 그룹 구성
+  const all = stops.filter(s=>s.dir!=='start');
+  const gs = [];
+  all.forEach(s=>{
+    if(!gs.length||gs[gs.length-1].dir!==s.dir)
+      gs.push({dir:s.dir, stops:[s], startIdx:s.start, endIdx:s.end});
+    else { gs[gs.length-1].stops.push(s); gs[gs.length-1].endIdx=s.end; }
+  });
+
+  // X축/Y축 모두 동일한 방향 구조:
+  //   Down: 큰값→작은값 (rep 감소) → 내림차순 정렬 = T1, T2, ..., T10
+  //   Up:   작은값→큰값 (rep 증가) → 오름차순 정렬 = T9, T8, ..., T0
+  const cycles = gs.map(g=>{
+    if(g.stops.length < 2) return null;
+
+    const ordered = [...g.stops].sort(
+      g.dir==='down' ? (a,b)=>b.rep-a.rep   // 내림차순: T1→T10
+                     : (a,b)=>a.rep-b.rep    // 오름차순: T9→T0
+    );
+
+    // 절점 번호 배정
+    const labeled = ordered.map((s, i)=>{
+      const tNum = g.dir==='down'
+        ? i + 1              // T1, T2, ... T10
+        : Math.max(9-i, 0);  // T9, T8, ... T0
+      return {...s, tNum};
+    });
+
+    // 에러 감지: Down T1~T10(10개), Up T0~T9(10개) 미만이면 누락
+    const errors = [];
+    if(labeled.length < 10) {
+      const found = new Set(labeled.map(s=>s.tNum));
+      if(g.dir==='down') {
+        for(let t=1; t<=10; t++) if(!found.has(t)) errors.push(`T${t}`);
+      } else {
+        for(let t=0; t<=9;  t++) if(!found.has(t)) errors.push(`T${t}`);
+      }
+    }
+
+    return {
+      dir: g.dir,
+      stops: labeled,
+      startIdx: g.startIdx,
+      endIdx: g.endIdx,
+      errors,
+      hasError: errors.length > 0,
+    };
+  }).filter(Boolean);
+
+  return cycles;
+}
+
+// ── 카드 렌더링 ──────────────────────────────────────────────
+function renderCard(idx) {
+  const r=fileResults[idx]; if(!r) return;
+  const s=S(); s.axis=r.axis; s.stepCount=AXIS[r.axis].stepCount;
+  const sampMs=s.samplingUs/1000;
+  const timeMs=r.pos.map((_,i)=>i*sampMs);
+  const stops=detectStops(r.pos,s);
+  if (stops.length<4) return;
+  const {t0Nom,t10Nom,t0b,t10b,realTargets}=detectT0T10(stops, s.stepMm);
+  const cycles=detectCycles(stops,t0b,t10b);
+  let dN=0,uN=0;
+  cycles.forEach(g=>{if(g.dir==='down'){dN++;g.cycleNo=dN;}else{uN++;g.cycleNo=uN;}});
+
+  // ── 웜업/측정 사이클 구분 태깅 ──────────────────────────────
+  // Down/Up 각각 cycleNo 기준: 1~warmupCycles = 웜업, 이후 = 측정
+  const wu = s.warmupCycles;
+  const mc = s.measCycles;
+  cycles.forEach(g=>{
+    g.isWarmup = g.cycleNo <= wu;
+    g.isMeas   = !g.isWarmup && g.cycleNo <= wu + mc;
+  });
+
+  // 에러 사이클 목록 (측정 사이클만)
+  const errMsgs = [];
+  cycles.forEach(g=>{
+    if(g.hasError && g.isMeas){
+      const label = `${g.dir==='down'?'↓Down':'↑Up'} ${g.cycleNo}회`;
+      errMsgs.push(`${label}: ${g.errors.join(', ')} 누락`);
+    }
+  });
+
+  const totalRange=Math.abs((t0Nom-t10Nom)*1000).toFixed(0);
+  const cid=`cv_${idx}`, lid=`lg_${idx}`, eid=`er_${idx}`;
+
+  const iso = calcISO230(cycles, realTargets);
+  // iso 결과를 fileResults에 저장 (팝업에서 재사용)
+  fileResults[idx]._iso = iso;
+  fileResults[idx]._realTargets = realTargets;
+  fileResults[idx]._cycles = cycles;
+
+  const div=document.createElement('div');
+  div.className='chart-card'; div.id=`card_${idx}`;
+  div.innerHTML=`
+    <div class="card-hdr">
+      <div style="min-width:0;overflow:hidden">
+        <div class="card-title">${r.filename}</div>
+        <div class="card-meta">
+          ${AXIS[r.axis].label} &nbsp;·&nbsp;
+          T0&nbsp;<b style="color:var(--text2)">${t0Nom.toFixed(3)}</b>mm
+          &nbsp;~&nbsp;
+          T10&nbsp;<b style="color:var(--text2)">${t10Nom.toFixed(3)}</b>mm
+          &nbsp;·&nbsp;범위&nbsp;<b style="color:var(--blue)">${totalRange}μm</b>
+          &nbsp;·&nbsp;
+          <span style="color:var(--red)">↓ Down ${dN}회</span>&nbsp;
+          <span style="color:var(--blue)">↑ Up ${uN}회</span>
+          &nbsp;·&nbsp;
+          <span style="color:var(--text3)">웜업 ${wu}회</span>&nbsp;
+          <span style="color:var(--text2)">측정 ${mc}회</span>
+        </div>
+        ${errMsgs.length ? `<div class="err-bar" id="${eid}">${errMsgs.map(m=>`<span class="err-item">⚠ ${m}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="card-acts">
+        <button class="btn btn-o" onclick="resetZoom(${idx})">↺ 줌</button>
+        <button class="btn btn-r" onclick="removeCard(${idx})">✕</button>
+      </div>
+    </div>
+    <div class="legend" id="${lid}"></div>
+    <div class="chart-body">
+      ${isoHTML(iso, idx)}
+      <div class="chart-wrap"><canvas id="${cid}"></canvas></div>
+    </div>`;
+  document.getElementById('fileCards').appendChild(div);
+  buildChart(idx, cid, lid, r.pos, timeMs, cycles, realTargets);
+}
+
+function buildChart(idx, cid, lid, pos, timeMs, cycles, realTargets) {
+  if (chartInst[idx]){chartInst[idx].destroy();delete chartInst[idx];}
+
+  // 배경 raw 데이터 (다운샘플)
+  const step=Math.max(1,Math.floor(pos.length/3000));
+  const bgData=[];
+  for(let i=0;i<pos.length;i+=step) bgData.push({x:timeMs[i],y:pos[i]});
+
+  const datasets=[{
+    label:'raw',data:bgData,
+    borderColor:'rgba(75,85,120,0.2)',backgroundColor:'transparent',
+    borderWidth:1,pointRadius:0,tension:0,parsing:false,showLine:true,order:99,
+  }];
+
+  // ── 사이클 라인 ─────────────────────────────────────────────
+  cycles.forEach(g=>{
+    const ci  = (g.cycleNo-1)%CC.length;
+    const colUp   = CC[ci][0];
+    const colDown = CC[ci][1];
+    const colGray = 'rgba(140,148,170,0.55)';  // T0/T10 무채색
+    const colWarm = 'rgba(110,118,150,0.35)';  // 웜업 무채색
+
+    // 측정 사이클: 유채색 / 웜업·기타: 무채색 얇은선
+    const isMeas = g.isMeas;
+    const colMain = isMeas ? (g.dir==='up' ? colUp : colDown) : colWarm;
+    const bw = isMeas ? 2 : 1;
+
+    const sampStep = Math.max(1, Math.floor((g.endIdx-g.startIdx)/500));
+    const lastStop = g.stops[g.stops.length-1];
+    const isBoundaryLast = (g.dir==='down' && lastStop.tNum===10) ||
+                           (g.dir==='up'   && lastStop.tNum===0);
+
+    if(!isBoundaryLast) {
+      const data=[];
+      for(let i=g.startIdx;i<=g.endIdx;i+=sampStep) data.push({x:timeMs[i],y:pos[i]});
+      if(data[data.length-1]?.x!==timeMs[g.endIdx]) data.push({x:timeMs[g.endIdx],y:pos[g.endIdx]});
+      datasets.push({ label:`${g.dir==='up'?'↑ Up':'↓ Down'} ${g.cycleNo}회`, data,
+        borderColor:colMain, backgroundColor:colMain, borderWidth:bw, pointRadius:0,
+        tension:0, parsing:false, showLine:true, order:g.cycleNo, _cn:g.cycleNo, _idx:idx });
+      return;
+    }
+
+    const boundaryStart = lastStop.start;
+
+    // 유채색(또는 웜업색) 구간
+    const mainData=[];
+    for(let i=g.startIdx;i<=boundaryStart;i+=sampStep) mainData.push({x:timeMs[i],y:pos[i]});
+    if(mainData[mainData.length-1]?.x!==timeMs[boundaryStart])
+      mainData.push({x:timeMs[boundaryStart],y:pos[boundaryStart]});
+    datasets.push({ label:`${g.dir==='up'?'↑ Up':'↓ Down'} ${g.cycleNo}회`, data:mainData,
+      borderColor:colMain, backgroundColor:colMain, borderWidth:bw, pointRadius:0,
+      tension:0, parsing:false, showLine:true, order:g.cycleNo, _cn:g.cycleNo, _idx:idx });
+
+    // T0/T10 경계 무채색 구간 (측정 사이클만 점선 구분, 웜업은 동일색)
+    const gcol = isMeas ? colGray : colWarm;
+    const grayData=[];
+    for(let i=boundaryStart;i<=g.endIdx;i+=sampStep) grayData.push({x:timeMs[i],y:pos[i]});
+    if(grayData[grayData.length-1]?.x!==timeMs[g.endIdx])
+      grayData.push({x:timeMs[g.endIdx],y:pos[g.endIdx]});
+    datasets.push({ label:`${g.dir==='up'?'↑ Up':'↓ Down'} ${g.cycleNo}회`, data:grayData,
+      borderColor:gcol, backgroundColor:gcol, borderWidth:isMeas?1.5:1, pointRadius:0,
+      tension:0, parsing:false, showLine:true, order:g.cycleNo,
+      _cn:g.cycleNo, _idx:idx, ...(isMeas?{borderDash:[4,4]}:{}) });
+  });
+
+  // ── 절점 마커 (scatter) — 측정 사이클만 ─────────────────────
+  cycles.forEach(g=>{
+    if(!g.isMeas) return;  // 웜업·기타 사이클 마커 미표시
+    const ci = (g.cycleNo-1)%CC.length;
+    const colMain = g.dir==='up' ? CC[ci][0] : CC[ci][1];
+    const colGray = 'rgba(140,148,170,0.7)';
+    const colErr  = '#ff4444';
+
+    g.stops.forEach(s=>{
+      const isBoundaryNode = (s.tNum===0 || s.tNum===10);
+      const col = isBoundaryNode ? colGray : colMain;
+      const midIdx = Math.round((s.start + s.end) / 2);
+      const markerData = [{
+        x: timeMs[midIdx], y: pos[midIdx],
+        _tname: `T${s.tNum}`,
+        _cn: g.cycleNo, _dir: g.dir,
+      }];
+      datasets.push({
+        label: `__marker_${g.dir}_${g.cycleNo}_t${s.tNum}`,
+        data: markerData,
+        type: 'scatter',
+        borderColor: g.hasError ? colErr : col,
+        backgroundColor: isBoundaryNode ? 'transparent' : (g.hasError ? colErr : col),
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        pointStyle: 'circle',
+        parsing: false,
+        showLine: false,
+        order: g.cycleNo - 0.5,
+        _cn: g.cycleNo, _idx: idx, _isMarker: true,
+      });
+    });
+  });
+  const nomLines=realTargets.map((val,i)=>({
+    label: i===0?'T0':i===realTargets.length-1?`T${i}`:`T${i}`,
+    val,
+    strong: i===0||i===realTargets.length-1,
+  }));
+  const hp={
+    id:`hp_${idx}`,
+    afterDraw(chart){
+      const{ctx,chartArea,scales}=chart;
+      if(!scales.x||!scales.y||!chartArea) return;
+      ctx.save();
+      ctx.beginPath();ctx.rect(chartArea.left,chartArea.top,chartArea.width,chartArea.height);ctx.clip();
+      nomLines.forEach(({label,val,strong})=>{
+        const py=scales.y.getPixelForValue(val);
+        if(py<chartArea.top||py>chartArea.bottom) return;
+        const col=strong?'rgba(160,170,210,0.55)':'rgba(85,95,130,0.28)';
+        ctx.beginPath();ctx.setLineDash(strong?[4,5]:[2,7]);
+        ctx.strokeStyle=col;ctx.lineWidth=strong?1:0.7;
+        ctx.moveTo(chartArea.left,py);ctx.lineTo(chartArea.right,py);ctx.stroke();
+        ctx.setLineDash([]);
+        const txt=`${label}(${val.toFixed(3)})`;
+        ctx.font=`${strong?'bold ':''} 9px Segoe UI,system-ui,sans-serif`;
+        const tw=ctx.measureText(txt).width;
+        ctx.fillStyle='rgba(11,13,20,0.8)';
+        ctx.fillRect(chartArea.left+2,py-6,tw+6,12);
+        ctx.fillStyle=strong?'rgba(185,195,230,0.9)':'rgba(110,120,155,0.75)';
+        ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText(txt,chartArea.left+5,py);
+      });
+      ctx.restore();
+    }
+  };
+
+  // 범례: 측정 사이클만 유채색, 웜업은 별도 회색 항목
+  const legEl=document.getElementById(lid);
+  const measCycles_list = cycles.filter(g=>g.isMeas);
+  const warmCycles_list = cycles.filter(g=>g.isWarmup);
+  const cns=[...new Set(measCycles_list.map(g=>g.cycleNo))].sort((a,b)=>a-b);
+  let legHtml = cns.map(cn=>{
+    const ci=(cn-1)%CC.length;
+    return `<div class="li" id="li_${idx}_${cn}" onclick="togC(${idx},${cn})">
+      <span class="ld" style="background:${CC[ci][1]}"></span>
+      <span class="ld" style="background:${CC[ci][0]}"></span>
+      <span>${cn}회차</span></div>`;
+  }).join('');
+  if(warmCycles_list.length){
+    legHtml += `<div class="li" style="opacity:.5">
+      <span class="ld" style="background:rgba(110,118,150,0.6)"></span>
+      <span class="ld" style="background:rgba(110,118,150,0.6)"></span>
+      <span>웜업 ${warmCycles_list.length/2|0}회</span></div>`;
+  }
+  legEl.innerHTML=legHtml;
+
+  // 마커 hover 시 절점 이름만 표시 — mousemove 기반 근접 탐지
+  const markerTip={
+    id:`mt_${idx}`,
+    afterInit(chart){
+      const canvas=chart.canvas;
+      let hovered=null;
+      canvas.addEventListener('mousemove',e=>{
+        const rect=canvas.getBoundingClientRect();
+        const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+        const HIT=8; // px 이내면 hover
+        let found=null;
+        chart.data.datasets.forEach((ds,di)=>{
+          if(!ds._isMarker) return;
+          ds.data.forEach((pt,pi)=>{
+            const px=chart.scales.x.getPixelForValue(pt.x);
+            const py=chart.scales.y.getPixelForValue(pt.y);
+            if(Math.abs(px-mx)<=HIT && Math.abs(py-my)<=HIT)
+              found={ds,pt,px,py};
+          });
+        });
+        if(hovered!==found){ hovered=found; chart.draw(); }
+        if(!found) return;
+        const{ctx}=chart;
+        const txt=found.pt._tname;
+        ctx.save();
+        ctx.font='bold 11px Segoe UI,system-ui,sans-serif';
+        const tw=ctx.measureText(txt).width;
+        const pad=5, bh=18;
+        const bx=found.px-tw/2-pad, by=found.py-bh-6;
+        ctx.fillStyle='rgba(11,13,20,0.9)';
+        ctx.beginPath();
+        ctx.roundRect(bx, by, tw+pad*2, bh, 3);
+        ctx.fill();
+        ctx.fillStyle='#e4e8f5';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(txt, found.px, by+bh/2);
+        ctx.restore();
+      });
+      canvas.addEventListener('mouseleave',()=>{ hovered=null; chart.draw(); });
+    },
+  };
+
+  const ctx=document.getElementById(cid).getContext('2d');
+  chartInst[idx]=new Chart(ctx,{
+    type:'line',data:{datasets},plugins:[hp,markerTip],
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled: false,   // 기본 Chart.js 툴팁 비활성 → markerTip 플러그인으로 대체
+        },
+        zoom:{
+          zoom:{drag:{enabled:true,backgroundColor:'rgba(92,124,250,.1)',borderColor:'#748ffc',borderWidth:1},mode:'xy'},
+          pan:{enabled:false},
+        },
+      },
+      scales:{
+        x:{type:'linear',grid:{color:'rgba(37,40,64,.8)'},
+           ticks:{color:'#8b92b8',maxTicksLimit:10,callback:v=>v>=1000?(v/1000).toFixed(1)+'s':v+'ms'}},
+        y:{grid:{color:'rgba(37,40,64,.8)'},ticks:{color:'#8b92b8',precision:3}},
+      },
+    },
+  });
+}
+
+// ── xlsx 내보내기 ────────────────────────────────────────────
+function exportXLSX() {
+  const rows = fileResults.filter(r=>r&&r._iso);
+  if(!rows.length){ alert('분석된 파일이 없습니다.'); return; }
+  if(typeof XLSX==='undefined'){ alert('SheetJS 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+
+  const today = new Date().toISOString().slice(0,10);
+  const fv = (v,d=1) => v!=null ? parseFloat(v.toFixed(d)) : '';
+
+  // ── Sheet1: Raw ────────────────────────────────────────────
+  const rawHeader = ['호기','축','회차','케이스','숫자','파일명',
+    'A(μm)','R(μm)','B_bar(μm)','B_max(μm)','Au(μm)','Ru(μm)','Ad(μm)','Rd(μm)','측정일'];
+
+  const rawData = [rawHeader];
+  rows.forEach(r=>{
+    const p=parseName(r.filename), iso=r._iso;
+    rawData.push([
+      p?parseInt(p.hogi):'',
+      p?p.axis:'',
+      p?p.hochaStr:'',
+      p?`case${p.case}`:'',
+      p?p.num:'',
+      r.filename,
+      fv(iso.A), fv(iso.R), fv(iso.Bbar), fv(iso.B),
+      fv(iso.Au), fv(iso.Ru), fv(iso.Ad), fv(iso.Rd),
+      today,
+    ]);
+  });
+  const wsRaw = XLSX.utils.aoa_to_sheet(rawData);
+  // 열 너비 설정
+  wsRaw['!cols'] = [6,4,6,8,4,24,9,9,9,9,9,9,9,9,12].map(w=>({wch:w}));
+
+  // ── Sheet2: Summary (케이스별 평균 + 범위) ─────────────────
+  // 데이터에서 고유 키 추출
+  const keys = []; // {hogi, axis, hocha, case}
+  const keySet = new Set();
+  rows.forEach(r=>{
+    const p=parseName(r.filename); if(!p) return;
+    const k=`${p.hogi}|${p.axis}|${p.hochaStr}|${p.case}`;
+    if(!keySet.has(k)){
+      keySet.add(k);
+      keys.push({hogi:parseInt(p.hogi),axis:p.axis,hocha:p.hochaStr,case:p.case});
+    }
+  });
+  keys.sort((a,b)=>a.hogi-b.hogi||a.axis.localeCompare(b.axis)||a.hocha.localeCompare(b.hocha)||a.case-b.case);
+
+  // ── Summary 항목: A, R, B_bar만 (avg + range) ──────────────
+  // Raw 시트 열 인덱스 (0-based): G=6(A), H=7(R), I=8(B_bar)
+  const sumMetrics = [
+    {key:'A',    label:'A(μm)',     rawCol:'G'},
+    {key:'R',    label:'R(μm)',     rawCol:'H'},
+    {key:'Bbar', label:'B_bar(μm)', rawCol:'I'},
+  ];
+
+  // Summary 헤더: 호기,축,회차,케이스,n, [A_avg,A_range, R_avg,R_range, B_bar_avg,B_bar_range]
+  const sumHeader=['호기','축','회차','케이스','n',
+    ...sumMetrics.flatMap(m=>[`${m.label}_avg`,`${m.label}_range`])];
+  const sumData=[sumHeader];
+
+  // Raw 시트는 2행부터 시작 (1행=헤더)
+  // 수식: AVERAGEIFS(Raw!G:G, Raw!A:A, 호기, Raw!B:B, 축, Raw!C:C, 회차, Raw!D:D, 케이스)
+  // MAXIFS - MINIFS = range
+  keys.forEach((k, ki)=>{
+    const dataRow = ki + 2; // Summary 데이터 시작행 (2행~)
+    const hogi    = k.hogi;
+    const axis    = k.axis;
+    const hocha   = k.hocha;
+    const caseLbl = `case${k.case}`;
+
+    const row = [hogi, axis, hocha, caseLbl,
+      // n: COUNTIFS
+      {f:`COUNTIFS(Raw!A:A,${hogi},Raw!B:B,"${axis}",Raw!C:C,"${hocha}",Raw!D:D,"${caseLbl}")`},
+    ];
+
+    sumMetrics.forEach(m=>{
+      const col = m.rawCol;
+      const crit = `Raw!A:A,${hogi},Raw!B:B,"${axis}",Raw!C:C,"${hocha}",Raw!D:D,"${caseLbl}"`;
+      row.push(
+        {f:`IFERROR(AVERAGEIFS(Raw!${col}:${col},${crit}),"")`},   // avg
+        {f:`IFERROR(MAXIFS(Raw!${col}:${col},${crit})-MINIFS(Raw!${col}:${col},${crit}),"")`}, // range
+      );
+    });
+    sumData.push(row);
+  });
+
+  const wsSum = XLSX.utils.aoa_to_sheet(sumData);
+  wsSum['!cols']=[6,4,6,8,4,...Array(sumMetrics.length*2).fill(12)].map(w=>({wch:w}));
+
+  // ── Sheet3: Trend — 동일 6개 항목만 ──────────────────────────
+  const hochaList=[...new Set(rows.map(r=>{const p=parseName(r.filename);return p?p.hochaStr:null}).filter(Boolean))].sort();
+  const caseKeys=[];const caseKeySet=new Set();
+  rows.forEach(r=>{
+    const p=parseName(r.filename);if(!p)return;
+    const k=`${p.hogi}|${p.axis}|${p.case}`;
+    if(!caseKeySet.has(k)){caseKeySet.add(k);caseKeys.push({hogi:parseInt(p.hogi),axis:p.axis,case:p.case});}
+  });
+  caseKeys.sort((a,b)=>a.hogi-b.hogi||a.axis.localeCompare(b.axis)||a.case-b.case);
+
+  const trendHeader=['호기','축','케이스','지표',...hochaList];
+  const trendData=[trendHeader];
+
+  caseKeys.forEach(ck=>{
+    sumMetrics.forEach(m=>{
+      // avg 행
+      const rowAvg=[ck.hogi, ck.axis, `case${ck.case}`, `${m.label}_avg`];
+      hochaList.forEach(hocha=>{
+        const group=rows.filter(r=>{
+          const p=parseName(r.filename);
+          return p&&parseInt(p.hogi)===ck.hogi&&p.axis===ck.axis&&p.hochaStr===hocha&&p.case===ck.case;
+        });
+        if(!group.length){rowAvg.push('');return;}
+        const vals=group.map(r=>r._iso[m.key]).filter(v=>v!=null);
+        rowAvg.push(vals.length?fv(vals.reduce((a,b)=>a+b)/vals.length):'');
+      });
+      trendData.push(rowAvg);
+      // range 행
+      const rowRange=[ck.hogi, ck.axis, `case${ck.case}`, `${m.label}_range`];
+      hochaList.forEach(hocha=>{
+        const group=rows.filter(r=>{
+          const p=parseName(r.filename);
+          return p&&parseInt(p.hogi)===ck.hogi&&p.axis===ck.axis&&p.hochaStr===hocha&&p.case===ck.case;
+        });
+        if(!group.length){rowRange.push('');return;}
+        const vals=group.map(r=>r._iso[m.key]).filter(v=>v!=null);
+        rowRange.push(vals.length?fv(Math.max(...vals)-Math.min(...vals)):'');
+      });
+      trendData.push(rowRange);
+    });
+  });
+  const wsTrend = XLSX.utils.aoa_to_sheet(trendData);
+  wsTrend['!cols']=[6,4,8,14,...hochaList.map(()=>10)].map(w=>({wch:w}));
+
+  // ── 스타일: 헤더 배경색 ────────────────────────────────────
+  const applyHeaderStyle = ws => {
+    const range=XLSX.utils.decode_range(ws['!ref']);
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const addr=XLSX.utils.encode_cell({r:0,c});
+      if(!ws[addr]) continue;
+      ws[addr].s={font:{bold:true,color:{rgb:'E4E8F5'}},
+        fill:{fgColor:{rgb:'1D2030'}},
+        alignment:{horizontal:'center',vertical:'center'}};
+    }
+  };
+  [wsRaw, wsSum, wsTrend].forEach(applyHeaderStyle);
+
+  // ── 워크북 생성 & 다운로드 ─────────────────────────────────
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsRaw,   'Raw');
+  XLSX.utils.book_append_sheet(wb, wsSum,   'Summary');
+  XLSX.utils.book_append_sheet(wb, wsTrend, 'Trend');
+
+  const fname = `ANP_results_${today}.xlsx`;
+  XLSX.writeFile(wb, fname, {bookType:'xlsx', type:'binary', cellStyles:true});
+}
+
+function togC(idx,cn){
+  const chart=chartInst[idx]; if(!chart) return;
+  const el=document.getElementById(`li_${idx}_${cn}`);
+  el.classList.toggle('off');
+  const hide=el.classList.contains('off');
+  chart.data.datasets.forEach((_,i)=>{
+    if(chart.data.datasets[i]._cn===cn&&chart.data.datasets[i]._idx===idx)
+      chart.data.datasets[i].hidden=hide;
+  });
+  chart.update();
+}
+function resetZoom(idx){ if(chartInst[idx]) chartInst[idx].resetZoom(); }
+function removeCard(idx){
+  if(chartInst[idx]){chartInst[idx].destroy();delete chartInst[idx];}
+  const el=document.getElementById(`card_${idx}`); if(el) el.remove();
+  fileResults[idx]=null; updCount();
+  if(!fileResults.filter(Boolean).length) resetAll();
+}
+function rerunAll(){
+  const saved=fileResults.filter(Boolean).map(r=>({...r}));
+  document.getElementById('fileCards').innerHTML='';
+  Object.values(chartInst).forEach(c=>c&&c.destroy());
+  for(const k in chartInst) delete chartInst[k];
+  fileResults.length=0;
+  saved.forEach((r,i)=>{
+    fileResults.push(r);
+    if(i===0){
+      document.getElementById('uploadWrap').style.display='none';
+      document.getElementById('content').style.display='block';
+    }
+    renderCard(i);
+  });
+  updCount();
+}
+function resetAll(){
+  fileResults.length=0;
+  Object.values(chartInst).forEach(c=>c&&c.destroy());
+  for(const k in chartInst) delete chartInst[k];
+  document.getElementById('fileCards').innerHTML='';
+  document.getElementById('content').style.display='none';
+  document.getElementById('uploadWrap').style.display='block';
+  document.getElementById('fileCount').textContent='';
+  document.getElementById('fileIn').value='';
+}
+</script>
+</body>
+</html>
